@@ -1,0 +1,32 @@
+app:
+  name:
+http:
+  port:
+database:
+  driver:
+  host:
+  port:
+  name:
+  username:
+  password:
+  sslMode:
+  defaultMaxConn:
+  defaultIdleConn:
+  connMaxLifetime:
+  connMaxIdleTime:
+jwt:
+  accessTokenSecret:
+  refreshTokenSecret:
+redis:
+  host:
+  port:
+  database:
+  password:
+  poolSize:
+smtp:
+  host:
+  port:
+  sender:
+  password:
+otp:
+  expiration:

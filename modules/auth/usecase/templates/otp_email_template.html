@@ -1,0 +1,60 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0; /* Light grey background for the body */
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff; /* White background for the card */
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px; /* Add space between cards */
+        }
+
+        .section {
+            padding: 20px; /* Increased padding for each section */
+            margin: 0; /* Remove margin for each section */
+            text-align: center; /* Center align text */
+            border-bottom: 1px solid #f0f0f0; /* Light grey separator line between sections */
+        }
+
+        .otp-box {
+            font-size: 50px;
+            letter-spacing: 10px;
+            font-weight: bold;
+            color: darkslateblue;
+        }
+    </style>
+    <title>OTP Verification</title>
+</head>
+
+<body>
+<div class="container">
+    <div class="card">
+        <!-- Second Section: OTP Information -->
+        <div class="section">
+            <p style="font-size: 24px; font-weight: bold">Your OTP Code</p> <!-- Larger font size for the OTP text -->
+            <div class="otp-box">{{.otp}}</div> <!-- Border around the OTP -->
+        </div>
+
+        <!-- Third Section: OTP Validity Information -->
+        <div class="section">
+            <p style="font-size: 20px;">OTP is valid for the next {{.exp}} minutes. Please do not share it with
+                anyone.</p> <!-- Adjusted font size -->
+        </div>
+    </div>
+</div>
+</body>
+</html>
