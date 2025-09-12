@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 
-	"github.com/winartodev/apollo-be/core/helper"
+	"github.com/winartodev/apollo-be/helper"
+	infraContext "github.com/winartodev/apollo-be/infrastructure/context"
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 	"github.com/winartodev/apollo-be/modules/user/domain/entities"
-	"github.com/winartodev/apollo-be/modules/user/domain/errors"
 	"github.com/winartodev/apollo-be/modules/user/domain/repository"
 )
 
@@ -24,7 +25,7 @@ func NewUserService(userRepo repository.UserRepository) (UserService, error) {
 }
 
 func (us *userService) GetCurrentUser(ctx context.Context) (user *entities.User, err error) {
-	id, err := helper.GetUserIDFromContext(ctx)
+	id, err := infraContext.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func (us *userService) GetCurrentUser(ctx context.Context) (user *entities.User,
 
 func (us *userService) IsEmailExists(ctx context.Context, email string) (res bool, err error) {
 	if !helper.IsEmailValid(email) {
-		return false, errors.InvalidEmail
+		return false, domainError.ErrInvalidEmail
 	}
 
 	user, err := us.userRepo.GetUserByEmailDB(ctx, email)
@@ -51,7 +52,7 @@ func (us *userService) IsEmailExists(ctx context.Context, email string) (res boo
 }
 
 func (us *userService) IsUsernameExists(ctx context.Context, username string) (res bool, err error) {
-	user, err := us.userRepo.GetUserByEmailDB(ctx, username)
+	user, err := us.userRepo.GetUserByUsernameDB(ctx, username)
 	if err != nil {
 		return false, err
 	}

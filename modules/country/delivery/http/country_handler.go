@@ -5,7 +5,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/winartodev/apollo-be/core/helper"
+	"github.com/winartodev/apollo-be/helper"
+	"github.com/winartodev/apollo-be/infrastructure/http/response"
 	"github.com/winartodev/apollo-be/modules/country/delivery/dto"
 )
 
@@ -23,14 +24,14 @@ func NewCountryHandler() *CountryHandler {
 func (h *CountryHandler) Countries(e echo.Context) error {
 	req, err := http.NewRequest("GET", countriesApiURL, nil)
 	if err != nil {
-		return helper.FailedResponse(e, http.StatusBadRequest, err)
+		return response.FailedResponse(e, http.StatusBadRequest, err)
 	}
 
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return helper.FailedResponse(e, http.StatusBadRequest, err)
+		return response.FailedResponse(e, http.StatusBadRequest, err)
 	}
 
 	defer resp.Body.Close()
@@ -43,12 +44,12 @@ func (h *CountryHandler) Countries(e echo.Context) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return helper.FailedResponse(e, http.StatusBadRequest, err)
+		return response.FailedResponse(e, http.StatusBadRequest, err)
 	}
 
-	response := make([]dto.CountryResponse, len(apiResponse))
+	data := make([]dto.CountryResponse, len(apiResponse))
 	for i, country := range apiResponse {
-		response[i] = dto.CountryResponse{
+		data[i] = dto.CountryResponse{
 			Name:         country.Name,
 			Code:         country.Alpha3Code,
 			Flags:        country.Flags,
@@ -56,7 +57,7 @@ func (h *CountryHandler) Countries(e echo.Context) error {
 		}
 	}
 
-	return helper.SuccessResponse(e, http.StatusOK, "", response, nil)
+	return response.SuccessResponse(e, http.StatusOK, "", data, nil)
 }
 
 func (h *CountryHandler) RegisterRoutes(api *echo.Group) error {

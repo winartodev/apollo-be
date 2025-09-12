@@ -7,29 +7,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/winartodev/apollo-be/core/helper"
-	"github.com/winartodev/apollo-be/modules/auth/domain/entities"
-	authDomainError "github.com/winartodev/apollo-be/modules/auth/domain/error"
+	"github.com/winartodev/apollo-be/infrastructure/database"
+	"github.com/winartodev/apollo-be/internal/domain/entities"
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 	"github.com/winartodev/apollo-be/modules/auth/domain/repository"
 )
 
 type AuthRepositoryImpl struct {
-	*helper.DatabaseUtil
+	*database.Database
 }
 
-func NewAuthRepository(database *helper.DatabaseUtil) (repository.AuthRepository, error) {
+func NewAuthRepository(db *database.Database) (repository.AuthRepository, error) {
 	return &AuthRepositoryImpl{
-		DatabaseUtil: database,
+		Database: db,
 	}, nil
 }
 
-func (ar *AuthRepositoryImpl) RegisterNewUserDB(ctx context.Context, data entities.User) (id *int64, err error) {
+func (ar *AuthRepositoryImpl) RegisterNewUserDB(ctx context.Context, data entities.SharedUser) (id *int64, err error) {
 	stmt, err := ar.DB.PrepareContext(ctx, registerUserQuery)
 	if err != nil {
-		return nil, fmt.Errorf(helper.ErrFailedPrepareStatement, err)
+		return nil, fmt.Errorf(database.ErrFailedPrepareStatement, err)
 	}
 
-	defer ar.DatabaseUtil.CloseStatement(stmt, &err)
+	defer ar.Database.CloseStatement(stmt, &err)
 
 	createdAt := time.Now().Unix()
 	var lastInsertID int64
@@ -43,7 +43,7 @@ func (ar *AuthRepositoryImpl) RegisterNewUserDB(ctx context.Context, data entiti
 		createdAt,
 	).Scan(&lastInsertID)
 	if err != nil {
-		return nil, fmt.Errorf(authDomainError.ErrFailedCreateUser, err)
+		return nil, domainError.ErrFailedCreateUser
 	}
 
 	return &lastInsertID, nil
@@ -52,10 +52,10 @@ func (ar *AuthRepositoryImpl) RegisterNewUserDB(ctx context.Context, data entiti
 func (ar *AuthRepositoryImpl) UpdateRefreshTokenDB(ctx context.Context, id int64, token *string) (err error) {
 	stmt, err := ar.DB.PrepareContext(ctx, updateRefreshTokenQuery)
 	if err != nil {
-		return fmt.Errorf(helper.ErrFailedPrepareStatement, err)
+		return fmt.Errorf(database.ErrFailedPrepareStatement, err)
 	}
 
-	defer ar.DatabaseUtil.CloseStatement(stmt, &err)
+	defer ar.Database.CloseStatement(stmt, &err)
 
 	updatedAt := time.Now().Unix()
 	_, err = stmt.ExecContext(
@@ -65,14 +65,14 @@ func (ar *AuthRepositoryImpl) UpdateRefreshTokenDB(ctx context.Context, id int64
 		updatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf(authDomainError.ErrFailedUpdateRefreshToken, err)
+		return domainError.ErrFailedUpdateRefreshToken
 	}
 
 	return nil
 }
 
-func (ar *AuthRepositoryImpl) GetUserDataDB(ctx context.Context, username string) (data *entities.User, err error) {
-	result := &entities.User{}
+func (ar *AuthRepositoryImpl) GetUserDataDB(ctx context.Context, username string) (data *entities.SharedUser, err error) {
+	result := &entities.SharedUser{}
 	err = ar.DB.QueryRowContext(ctx, getUserData, username, username).Scan(
 		&result.ID,
 		&result.Username,
@@ -84,7 +84,7 @@ func (ar *AuthRepositoryImpl) GetUserDataDB(ctx context.Context, username string
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf(authDomainError.ErrFailedGetUserData, err)
+		return nil, domainError.ErrFailedGetUserData
 	}
 
 	return result, nil

@@ -29,6 +29,6 @@ go.work.sum
 .idea/
 .vscode/
 
-core/files/*.yaml
+files/*.yaml
 
 .air.toml

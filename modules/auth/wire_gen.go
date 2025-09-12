@@ -7,7 +7,15 @@
 package auth
 
 import (
-	"github.com/winartodev/apollo-be/core/helper"
+	"database/sql"
+
+	"github.com/redis/go-redis/v9"
+	"github.com/winartodev/apollo-be/config"
+	"github.com/winartodev/apollo-be/infrastructure/auth"
+	"github.com/winartodev/apollo-be/infrastructure/database"
+	"github.com/winartodev/apollo-be/infrastructure/middleware"
+	redis2 "github.com/winartodev/apollo-be/infrastructure/redis"
+	"github.com/winartodev/apollo-be/infrastructure/smtp"
 	"github.com/winartodev/apollo-be/modules/auth/delivery/http"
 	"github.com/winartodev/apollo-be/modules/auth/domain/service"
 	"github.com/winartodev/apollo-be/modules/auth/repository"
@@ -19,16 +27,25 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeAuthAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, jwt *helper.JWT, smtp *helper.SmtpConfig, otp *helper.OtpConfig) (*http.AuthHandler, error) {
-	authRepository, err := repository.NewAuthRepository(database)
+func InitializeAuthAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTPConfig, otp *config.Otp) (*http.AuthHandler, error) {
+	databaseDatabase, err := database.NewDatabase(db)
 	if err != nil {
 		return nil, err
 	}
-	authService, err := service.NewAuthService(authRepository)
+	authRepository, err := repository.NewAuthRepository(databaseDatabase)
 	if err != nil {
 		return nil, err
 	}
-	otpRepository, err := repository.NewOtpRepository(redis)
+	passwordService := auth.NewBcryptPasswordService()
+	authService, err := service.NewAuthService(authRepository, passwordService)
+	if err != nil {
+		return nil, err
+	}
+	redisRedis, err := redis2.NewRedis(redis3)
+	if err != nil {
+		return nil, err
+	}
+	otpRepository, err := repository.NewOtpRepository(redisRedis)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +53,7 @@ func InitializeAuthAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, j
 	if err != nil {
 		return nil, err
 	}
-	userRepository, err := repository2.NewUserRepository(database)
+	userRepository, err := repository2.NewUserRepository(databaseDatabase)
 	if err != nil {
 		return nil, err
 	}
@@ -48,17 +65,28 @@ func InitializeAuthAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, j
 	if err != nil {
 		return nil, err
 	}
-	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, jwt, smtp, otp)
-	authUseCase, err := usecase2.NewAuthUseCase(authService, otpUseCase, jwt, userUseCase)
+	smtpService := smtp.NewSMTPService(smtpConfig)
+	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService, otp)
+	jwt, err := auth.NewJWT()
 	if err != nil {
 		return nil, err
 	}
-	authHandler := http.NewAuthHandler(authUseCase)
+	tokenService := auth.NewJwtTokenService(jwt)
+	authUseCase, err := usecase2.NewAuthUseCase(authService, otpUseCase, tokenService, userUseCase)
+	if err != nil {
+		return nil, err
+	}
+	middlewareMiddleware := middleware.NewMiddleware(tokenService)
+	authHandler := http.NewAuthHandler(authUseCase, middlewareMiddleware)
 	return authHandler, nil
 }
 
-func InitializeOtpAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, jwt *helper.JWT, smtp *helper.SmtpConfig, otp *helper.OtpConfig) (*http.OtpHandler, error) {
-	otpRepository, err := repository.NewOtpRepository(redis)
+func InitializeOtpAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTPConfig, otp *config.Otp) (*http.OtpHandler, error) {
+	redisRedis, err := redis2.NewRedis(redis3)
+	if err != nil {
+		return nil, err
+	}
+	otpRepository, err := repository.NewOtpRepository(redisRedis)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +94,11 @@ func InitializeOtpAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, jw
 	if err != nil {
 		return nil, err
 	}
-	userRepository, err := repository2.NewUserRepository(database)
+	databaseDatabase, err := database.NewDatabase(db)
+	if err != nil {
+		return nil, err
+	}
+	userRepository, err := repository2.NewUserRepository(databaseDatabase)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +110,14 @@ func InitializeOtpAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, jw
 	if err != nil {
 		return nil, err
 	}
-	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, jwt, smtp, otp)
-	otpHandler := http.NewOtpHandler(otpUseCase)
+	smtpService := smtp.NewSMTPService(smtpConfig)
+	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService, otp)
+	jwt, err := auth.NewJWT()
+	if err != nil {
+		return nil, err
+	}
+	tokenService := auth.NewJwtTokenService(jwt)
+	middlewareMiddleware := middleware.NewMiddleware(tokenService)
+	otpHandler := http.NewOtpHandler(otpUseCase, middlewareMiddleware)
 	return otpHandler, nil
 }

@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/google/wire"
+	"github.com/winartodev/apollo-be/infrastructure/provider"
 	"github.com/winartodev/apollo-be/modules/user/delivery/http"
 	userService "github.com/winartodev/apollo-be/modules/user/domain/service"
 	userRepo "github.com/winartodev/apollo-be/modules/user/repository"
@@ -29,6 +30,8 @@ var handlerSet = wire.NewSet(
 )
 
 var moduleSet = wire.NewSet(
+	provider.InfraProviderSet,
+	provider.MiddlewareProviderSet,
 	repositorySet,
 	serviceSet,
 	useCaseSet,

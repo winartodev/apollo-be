@@ -7,7 +7,11 @@
 package user
 
 import (
-	"github.com/winartodev/apollo-be/core/helper"
+	"database/sql"
+
+	"github.com/winartodev/apollo-be/infrastructure/auth"
+	"github.com/winartodev/apollo-be/infrastructure/database"
+	"github.com/winartodev/apollo-be/infrastructure/middleware"
 	"github.com/winartodev/apollo-be/modules/user/delivery/http"
 	"github.com/winartodev/apollo-be/modules/user/domain/service"
 	"github.com/winartodev/apollo-be/modules/user/repository"
@@ -16,8 +20,12 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeUserAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, jwt *helper.JWT) (*http.UserHandler, error) {
-	userRepository, err := repository.NewUserRepository(database)
+func InitializeUserAPI(db *sql.DB) (*http.UserHandler, error) {
+	databaseDatabase, err := database.NewDatabase(db)
+	if err != nil {
+		return nil, err
+	}
+	userRepository, err := repository.NewUserRepository(databaseDatabase)
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +37,12 @@ func InitializeUserAPI(database *helper.DatabaseUtil, redis *helper.RedisUtil, j
 	if err != nil {
 		return nil, err
 	}
-	userHandler := http.NewUserHandler(userUseCase)
+	jwt, err := auth.NewJWT()
+	if err != nil {
+		return nil, err
+	}
+	tokenService := auth.NewJwtTokenService(jwt)
+	middlewareMiddleware := middleware.NewMiddleware(tokenService)
+	userHandler := http.NewUserHandler(userUseCase, middlewareMiddleware)
 	return userHandler, nil
 }
