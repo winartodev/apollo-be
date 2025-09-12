@@ -1,0 +1,426 @@
+basePath: /api
+definitions:
+  dto.AuthResponse:
+    properties:
+      access_token:
+        description: |-
+          JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      otp:
+        allOf:
+        - $ref: '#/definitions/dto.OtpRefreshResponse'
+        description: OTP information (if applicable)
+      redirection_link:
+        description: |-
+          Redirection link after authentication
+          example: /dashboard
+        type: string
+      refresh_token:
+        description: |-
+          Refresh token for obtaining new access tokens
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  dto.OtpRefreshResponse:
+    properties:
+      expires_in:
+        description: |-
+          Time in seconds until the OTP expires
+          example: 300
+        type: integer
+      is_valid:
+        description: |-
+          Indicates if the OTP is valid
+          example: true
+        type: boolean
+      retry_after_seconds:
+        description: |-
+          Time in seconds to wait before retrying (optional)
+          example: 60
+        type: integer
+      retry_attempts_left:
+        description: |-
+          Number of retry attempts remaining
+          example: 3
+        type: integer
+    type: object
+  dto.OtpRequest:
+    properties:
+      otp:
+        description: |-
+          OTP number (required)
+          required: true
+          minimum: 6
+          maximum: 6
+          example: 123456
+        maximum: 6
+        minimum: 0
+        type: integer
+    required:
+    - otp
+    type: object
+  dto.OtpValidationResponse:
+    properties:
+      is_valid:
+        description: |-
+          Indicates if the OTP validation was successful
+          example: true
+        type: boolean
+      message:
+        description: |-
+          Message describing the validation result
+          example: OTP validated successfully
+        type: string
+      redirection_link:
+        description: |-
+          Redirection link after successful validation
+          example: https://example.com/dashboard
+        type: string
+    type: object
+  dto.SignInRequest:
+    properties:
+      password:
+        description: |-
+          Password (required)
+          required: true
+          min length: 6
+          max length: 100
+          example: secretPassword123
+        maxLength: 30
+        minLength: 6
+        type: string
+      username:
+        description: |-
+          Username or email address (required)
+          required: true
+          min length: 3
+          max length: 50
+          example: john.doe@example.com
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  dto.SignUpRequest:
+    properties:
+      email:
+        description: |-
+          Email address (required)
+          required: true
+          format: email
+          example: john.doe@example.com
+        type: string
+      password:
+        description: |-
+          Password (required)
+          required: true
+          min length: 8
+          max length: 100
+          example: SecurePass123!
+        type: string
+      phone_number:
+        description: |-
+          Phone number (optional)
+          pattern: ^\+?[1-9]\d{1,14}$
+          example: +1234567890
+        type: string
+      username:
+        description: |-
+          Username (required)
+          required: true
+          min length: 3
+          max length: 30
+          pattern: ^[a-zA-Z0-9_]+$
+          example: JohnDoe
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - username
+    type: object
+  helper.ErrorResponse:
+    properties:
+      error:
+        description: |-
+          General error message when no field-specific errors exist
+          Example: "Invalid credentials"
+      message:
+        description: Optional message describing the result
+        type: string
+      success:
+        description: Indicates if the request was successful
+        type: boolean
+    type: object
+  helper.Response:
+    properties:
+      data:
+        description: The main data payload
+      message:
+        description: Optional message describing the result
+        type: string
+      meta:
+        description: Additional metadata about the response
+      success:
+        description: Indicates if the request was successful
+        type: boolean
+    type: object
+host: localhost:8081
+info:
+  contact: {}
+  description: This is the Apollo server.
+  title: Apollo API
+  version: "1.0"
+paths:
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access token using refresh token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens refreshed successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "401":
+          description: Unauthorized - Invalid or expired refresh token
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Refresh authentication tokens
+      tags:
+      - Authentication
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Sign in user with username/email and password
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SignInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User authenticated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "401":
+          description: Invalid username or password
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      summary: Authenticate user
+      tags:
+      - Authentication
+  /auth/sign-out:
+    post:
+      consumes:
+      - application/json
+      description: Sign out user and invalidate authentication tokens
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User signed out successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "401":
+          description: Unauthorized - Invalid or missing token
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Authentication
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with provided credentials
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Authentication
+  /otp/resend:
+    post:
+      consumes:
+      - application/json
+      description: Resend one-time password to the user
+      parameters:
+      - description: OTP request data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OtpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OTP resent successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.OtpRefreshResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "429":
+          description: Too many requests - rate limited
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Resend OTP
+      tags:
+      - OTP
+  /otp/validate:
+    post:
+      consumes:
+      - application/json
+      description: Validate one-time password provided by the user
+      parameters:
+      - description: OTP validation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OtpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OTP validated successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/helper.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.OtpValidationResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "403":
+          description: Invalid OTP
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "429":
+          description: Too many attempts
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/helper.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Validate OTP
+      tags:
+      - OTP
+schemes:
+- http
+- https
+security:
+- Definitions.apikey BearerAuth: []
+swagger: "2.0"
