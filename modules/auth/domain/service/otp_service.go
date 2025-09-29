@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"time"
 
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 	"github.com/winartodev/apollo-be/modules/auth/domain/entities"
-	domainError "github.com/winartodev/apollo-be/modules/auth/domain/error"
 	"github.com/winartodev/apollo-be/modules/auth/domain/repository"
 )
 
@@ -44,7 +44,8 @@ func (os *otpService) GetOTP(ctx context.Context, username string) (otp *string,
 	}
 
 	if currentAttempt != nil && *currentAttempt >= otpMaxAttempts {
-		return nil, nil, domainError.ErrOtpToManyRequest
+
+		return nil, nil, domainError.ErrOtpTooManyRequest
 	}
 
 	err = os.otpRepo.SetOtpRedis(ctx, username, entities.OTP{

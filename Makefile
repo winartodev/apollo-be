@@ -9,7 +9,7 @@ DB_PASSWORD ?= postgres123
 DB_SSL ?= disable
 
 MIGRATION_EXT ?= sql
-MIGRATION_PATH ?= core/migrations/
+MIGRATION_PATH ?= migrations/
 MIGRATION_DSN ?= $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
 
 SWAGGER_OUTPUT ?= ./docs
@@ -81,7 +81,7 @@ migrate-status: ## Show migration status
 generate-api-doc: ## Generate API documentation
 	@echo "Generating API documentation..."
 	@swag init \
-		--generalInfo ./cmd/http.go \
+		--generalInfo ./cmd/http/http.go \
 		--parseInternal \
 		--parseDepth 1 \
 		--propertyStrategy pascalcase \
@@ -96,7 +96,7 @@ run-godoc:
 
 build: ## Build the application
 	@echo "Building application..."
-	@go build -o bin/server cmd/http.go
+	@go build -o bin/server cmd/http/http.go
 
 clean: ## Clean build artifacts
 	@rm -rf bin/ coverage.*

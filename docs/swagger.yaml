@@ -51,14 +51,17 @@ definitions:
         description: |-
           OTP number (required)
           required: true
-          minimum: 6
+          minimum: 0
           maximum: 6
           example: 123456
-        maximum: 6
-        minimum: 0
         type: integer
     required:
     - otp
+    type: object
+  dto.OtpResendRequest:
+    properties:
+      username:
+        type: string
     type: object
   dto.OtpValidationResponse:
     properties:
@@ -141,7 +144,7 @@ definitions:
     required:
     - username
     type: object
-  helper.ErrorResponse:
+  response.ErrorResponse:
     properties:
       error:
         description: |-
@@ -154,7 +157,7 @@ definitions:
         description: Indicates if the request was successful
         type: boolean
     type: object
-  helper.Response:
+  response.Response:
     properties:
       data:
         description: The main data payload
@@ -186,7 +189,7 @@ paths:
           description: Tokens refreshed successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.AuthResponse'
@@ -194,11 +197,11 @@ paths:
         "401":
           description: Unauthorized - Invalid or expired refresh token
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Refresh authentication tokens
@@ -223,7 +226,7 @@ paths:
           description: User authenticated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.AuthResponse'
@@ -231,19 +234,19 @@ paths:
         "400":
           description: Invalid request payload
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
           description: Invalid username or password
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "422":
           description: Validation error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Authenticate user
       tags:
       - Authentication
@@ -259,7 +262,7 @@ paths:
           description: User signed out successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.AuthResponse'
@@ -267,11 +270,11 @@ paths:
         "401":
           description: Unauthorized - Invalid or missing token
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Logout user
@@ -296,7 +299,7 @@ paths:
           description: User registered successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.AuthResponse'
@@ -304,15 +307,15 @@ paths:
         "400":
           description: Invalid request payload
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "422":
           description: Validation error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       summary: Register a new user
       tags:
       - Authentication
@@ -322,12 +325,12 @@ paths:
       - application/json
       description: Resend one-time password to the user
       parameters:
-      - description: OTP request data
+      - description: OTP resend request data
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.OtpRequest'
+          $ref: '#/definitions/dto.OtpResendRequest'
       produces:
       - application/json
       responses:
@@ -335,7 +338,7 @@ paths:
           description: OTP resent successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.OtpRefreshResponse'
@@ -343,23 +346,23 @@ paths:
         "400":
           description: Invalid request payload
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "422":
           description: Validation error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "429":
           description: Too many requests - rate limited
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Resend OTP
@@ -384,7 +387,7 @@ paths:
           description: OTP validated successfully
           schema:
             allOf:
-            - $ref: '#/definitions/helper.Response'
+            - $ref: '#/definitions/response.Response'
             - properties:
                 data:
                   $ref: '#/definitions/dto.OtpValidationResponse'
@@ -392,27 +395,27 @@ paths:
         "400":
           description: Invalid request payload
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "403":
           description: Invalid OTP
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "422":
           description: Validation error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "429":
           description: Too many attempts
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/helper.ErrorResponse'
+            $ref: '#/definitions/response.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Validate OTP

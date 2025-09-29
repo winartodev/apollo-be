@@ -2,25 +2,28 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/winartodev/apollo-be/core/helper"
-	"github.com/winartodev/apollo-be/core/middleware"
+	"github.com/winartodev/apollo-be/helper"
+	infraContext "github.com/winartodev/apollo-be/infrastructure/context"
+	"github.com/winartodev/apollo-be/infrastructure/http/response"
+	"github.com/winartodev/apollo-be/infrastructure/middleware"
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 	"github.com/winartodev/apollo-be/modules/auth/delivery/enums"
 	"github.com/winartodev/apollo-be/modules/auth/delivery/http/dto"
-	authDomainError "github.com/winartodev/apollo-be/modules/auth/domain/error"
 	"github.com/winartodev/apollo-be/modules/auth/usecase"
 )
 
 type AuthHandler struct {
+	middleware  *middleware.Middleware
 	authUseCase usecase.AuthUseCase
 }
 
-func NewAuthHandler(authUseCase usecase.AuthUseCase) *AuthHandler {
+func NewAuthHandler(authUseCase usecase.AuthUseCase, middleware *middleware.Middleware) *AuthHandler {
 	return &AuthHandler{
+		middleware:  middleware,
 		authUseCase: authUseCase,
 	}
 }
@@ -32,27 +35,27 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase) *AuthHandler {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		dto.SignUpRequest						true	"User registration data"
-//	@Success		201		{object}	helper.Response{data=dto.AuthResponse}	"User registered successfully"
-//	@Failure		400		{object}	helper.ErrorResponse					"Invalid request payload"
-//	@Failure		422		{object}	helper.ErrorResponse					"Validation error"
-//	@Failure		500		{object}	helper.ErrorResponse					"Internal server error"
+//	@Param			request	body		dto.SignUpRequest							true	"User registration data"
+//	@Success		201		{object}	response.Response{data=dto.AuthResponse}	"User registered successfully"
+//	@Failure		400		{object}	response.ErrorResponse						"Invalid request payload"
+//	@Failure		422		{object}	response.ErrorResponse						"Validation error"
+//	@Failure		500		{object}	response.ErrorResponse						"Internal server error"
 //	@Router			/auth/sign-up [post]
 func (ah *AuthHandler) SignUp(c echo.Context) error {
 	var req dto.SignUpRequest
 
 	if err := c.Bind(&req); err != nil {
-		return helper.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(helper.ErrInvalidRequestPayload, err))
+		return response.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(response.ErrInvalidRequestPayload, err))
 	}
 
 	if err := c.Validate(req); err != nil {
-		return helper.ValidationErrResponse(c, err)
+		return response.ValidationErrResponse(c, err)
 	}
 
 	ctx := c.Request().Context()
 	res, err := ah.authUseCase.SignUp(ctx, req.ToUseCaseData())
 	if err != nil {
-		return helper.FailedResponse(c, http.StatusInternalServerError, err)
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
 	}
 
 	resp := dto.AuthResponse{
@@ -66,7 +69,7 @@ func (ah *AuthHandler) SignUp(c echo.Context) error {
 		},
 	}
 
-	return helper.SuccessResponse(c, http.StatusCreated, "User registered successfully", resp, nil)
+	return response.SuccessResponse(c, http.StatusCreated, "User registered successfully", resp, nil)
 }
 
 // SignIn handles user authentication
@@ -76,32 +79,28 @@ func (ah *AuthHandler) SignUp(c echo.Context) error {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		dto.SignInRequest						true	"User credentials"
-//	@Success		200		{object}	helper.Response{data=dto.AuthResponse}	"User authenticated successfully"
-//	@Failure		400		{object}	helper.ErrorResponse					"Invalid request payload"
-//	@Failure		401		{object}	helper.ErrorResponse					"Invalid username or password"
-//	@Failure		422		{object}	helper.ErrorResponse					"Validation error"
-//	@Failure		500		{object}	helper.ErrorResponse					"Internal server error"
+//	@Param			request	body		dto.SignInRequest							true	"User credentials"
+//	@Success		200		{object}	response.Response{data=dto.AuthResponse}	"User authenticated successfully"
+//	@Failure		400		{object}	response.ErrorResponse						"Invalid request payload"
+//	@Failure		401		{object}	response.ErrorResponse						"Invalid username or password"
+//	@Failure		422		{object}	response.ErrorResponse						"Validation error"
+//	@Failure		500		{object}	response.ErrorResponse						"Internal server error"
 //	@Router			/auth/sign-in [post]
 func (ah *AuthHandler) SignIn(c echo.Context) error {
 	var req dto.SignInRequest
 
 	if err := c.Bind(&req); err != nil {
-		return helper.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(helper.ErrInvalidRequestPayload, err))
+		return response.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(response.ErrInvalidRequestPayload, err))
 	}
 
 	if err := c.Validate(req); err != nil {
-		return helper.ValidationErrResponse(c, err)
+		return response.ValidationErrResponse(c, err)
 	}
 
 	ctx := c.Request().Context()
 	res, err := ah.authUseCase.SignIn(ctx, req.ToUseCaseData())
 	if err != nil {
-		if errors.Is(err, authDomainError.ErrInvalidUsernameOrPassword) || errors.Is(err, authDomainError.ErrUserNotFound) {
-			return helper.FailedResponse(c, http.StatusUnauthorized, authDomainError.ErrInvalidUsernameOrPassword)
-		}
-
-		return helper.FailedResponse(c, http.StatusInternalServerError, err)
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
 	}
 
 	resp := dto.AuthResponse{
@@ -110,7 +109,7 @@ func (ah *AuthHandler) SignIn(c echo.Context) error {
 		RedirectionLink: ah.buildRedirectionLink(ctx, enums.SignIn),
 	}
 
-	return helper.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
+	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
 // SignOut handles user logout
@@ -121,15 +120,15 @@ func (ah *AuthHandler) SignIn(c echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{object}	helper.Response{data=dto.AuthResponse}	"User signed out successfully"
-//	@Failure		401	{object}	helper.ErrorResponse					"Unauthorized - Invalid or missing token"
-//	@Failure		500	{object}	helper.ErrorResponse					"Internal server error"
+//	@Success		200	{object}	response.Response{data=dto.AuthResponse}	"User signed out successfully"
+//	@Failure		401	{object}	response.ErrorResponse						"Unauthorized - Invalid or missing token"
+//	@Failure		500	{object}	response.ErrorResponse						"Internal server error"
 //	@Router			/auth/sign-out [post]
 func (ah *AuthHandler) SignOut(c echo.Context) error {
 	ctx := c.Request().Context()
 	res, err := ah.authUseCase.SignOut(ctx)
 	if err != nil {
-		return helper.FailedResponse(c, http.StatusInternalServerError, err)
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
 	}
 
 	resp := dto.AuthResponse{
@@ -138,7 +137,7 @@ func (ah *AuthHandler) SignOut(c echo.Context) error {
 		RedirectionLink: ah.buildRedirectionLink(ctx, enums.SignOut),
 	}
 
-	return helper.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
+	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
 // RefreshToken handles token refresh
@@ -149,15 +148,15 @@ func (ah *AuthHandler) SignOut(c echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{object}	helper.Response{data=dto.AuthResponse}	"Tokens refreshed successfully"
-//	@Failure		401	{object}	helper.ErrorResponse					"Unauthorized - Invalid or expired refresh token"
-//	@Failure		500	{object}	helper.ErrorResponse					"Internal server error"
+//	@Success		200	{object}	response.Response{data=dto.AuthResponse}	"Tokens refreshed successfully"
+//	@Failure		401	{object}	response.ErrorResponse						"Unauthorized - Invalid or expired refresh token"
+//	@Failure		500	{object}	response.ErrorResponse						"Internal server error"
 //	@Router			/auth/refresh [post]
 func (ah *AuthHandler) RefreshToken(c echo.Context) error {
 	ctx := c.Request().Context()
 	res, err := ah.authUseCase.RefreshToken(ctx)
 	if err != nil {
-		return helper.FailedResponse(c, http.StatusInternalServerError, err)
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
 	}
 
 	resp := dto.AuthResponse{
@@ -166,27 +165,27 @@ func (ah *AuthHandler) RefreshToken(c echo.Context) error {
 		RedirectionLink: "/",
 	}
 
-	return helper.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
+	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
 func (ah *AuthHandler) VerifyUser(c echo.Context) error {
 	var req dto.VerifyUserRequest
 
 	if err := c.Bind(&req); err != nil {
-		return helper.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(helper.ErrInvalidRequestPayload, err))
+		return response.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(response.ErrInvalidRequestPayload, err))
 	}
 
 	if err := c.Validate(req); err != nil {
-		return helper.ValidationErrResponse(c, err)
+		return response.ValidationErrResponse(c, err)
 	}
 
 	ctx := c.Request().Context()
 	err := ah.authUseCase.VerifyUser(ctx, req.Username)
 	if err != nil {
-		return helper.FailedResponse(c, http.StatusConflict, authDomainError.ErrInvalidUsernameOrPassword)
+		return response.FailedResponse(c, http.StatusConflict, domainError.ErrInvalidUsernameOrPassword)
 	}
 
-	return helper.SuccessResponse(c, http.StatusOK, "ok", nil, nil)
+	return response.SuccessResponse(c, http.StatusOK, "ok", nil, nil)
 }
 
 func (ah *AuthHandler) RegisterRoutes(api *echo.Group) error {
@@ -194,15 +193,20 @@ func (ah *AuthHandler) RegisterRoutes(api *echo.Group) error {
 	auth.POST("/sign-up", ah.SignUp)
 	auth.POST("/sign-in", ah.SignIn)
 	auth.GET("/verify-user", ah.VerifyUser)
-	auth.POST("/sign-out", ah.SignOut, middleware.HandleWithAuth())
-	auth.POST("/refresh", ah.RefreshToken, middleware.HandleRefreshToken())
+	auth.POST("/sign-out", ah.SignOut, ah.middleware.HandleWithAuth())
+	auth.POST("/refresh", ah.RefreshToken, ah.middleware.HandleRefreshToken())
 
 	return nil
 }
 
 func (ah *AuthHandler) buildRedirectionLink(ctx context.Context, action enums.AuthOperation) string {
+	platform, err := infraContext.GetAppPlatformFromContext(ctx)
+	if err != nil {
+		return ah.getWebRedirection(action)
+	}
+
 	return helper.BuildRedirectionLink[enums.AuthOperation](
-		ctx,
+		platform,
 		action,
 		ah.getMobileRedirection,
 		ah.getWebRedirection,

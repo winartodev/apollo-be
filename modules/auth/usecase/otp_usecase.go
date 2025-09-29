@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/winartodev/apollo-be/core/helper"
+	"github.com/winartodev/apollo-be/config"
+	"github.com/winartodev/apollo-be/infrastructure/smtp"
 	"github.com/winartodev/apollo-be/modules/auth/domain/service"
 	"github.com/winartodev/apollo-be/modules/auth/usecase/dto"
 	userUseCase "github.com/winartodev/apollo-be/modules/user/usecase"
@@ -20,17 +21,15 @@ type OtpUseCase interface {
 }
 
 type otpUseCase struct {
-	jwt         *helper.JWT
-	smtp        *helper.SmtpConfig
-	otp         *helper.OtpConfig
+	smtpService smtp.SMTPService
+	otp         *config.Otp
 	userUseCase userUseCase.UserUseCase
 	otpService  service.OtpService
 }
 
-func NewOtpUseCase(otpService service.OtpService, userUseCase userUseCase.UserUseCase, jwt *helper.JWT, smtp *helper.SmtpConfig, otp *helper.OtpConfig) OtpUseCase {
+func NewOtpUseCase(otpService service.OtpService, userUseCase userUseCase.UserUseCase, smtpService smtp.SMTPService, otp *config.Otp) OtpUseCase {
 	return &otpUseCase{
-		jwt:         jwt,
-		smtp:        smtp,
+		smtpService: smtpService,
 		otp:         otp,
 		otpService:  otpService,
 		userUseCase: userUseCase,
@@ -97,7 +96,7 @@ func (ou *otpUseCase) sendOTPEmail(email string, code string) (err error) {
 		return fmt.Errorf("failed to render email template: %v", err)
 	}
 
-	err = ou.smtp.SendSmtpHTML(email, "Your Verification Code", body.String())
+	err = ou.smtpService.SendHTML(email, "Your Verification Code", body.String())
 	if err != nil {
 		return fmt.Errorf("failed to send OTP email: %v", err)
 	}

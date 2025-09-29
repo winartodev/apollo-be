@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/google/wire"
+	"github.com/winartodev/apollo-be/infrastructure/provider"
 	authHttp "github.com/winartodev/apollo-be/modules/auth/delivery/http"
 	authService "github.com/winartodev/apollo-be/modules/auth/domain/service"
 	authRepo "github.com/winartodev/apollo-be/modules/auth/repository"
@@ -39,6 +40,9 @@ var handlerSet = wire.NewSet(
 )
 
 var moduleSet = wire.NewSet(
+	provider.InfraProviderSet,
+	provider.MiddlewareProviderSet,
+	provider.ApplicationServiceProviderSet,
 	repositorySet,
 	serviceSet,
 	useCaseSet,

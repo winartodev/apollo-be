@@ -2,16 +2,16 @@ package usecase
 
 import (
 	"context"
+	"github.com/winartodev/apollo-be/internal/domain/entities"
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 
-	"github.com/winartodev/apollo-be/core/helper"
 	"github.com/winartodev/apollo-be/modules/user/domain/service"
 	"github.com/winartodev/apollo-be/modules/user/usecase/dto"
-	userUseCaseError "github.com/winartodev/apollo-be/modules/user/usecase/error"
 )
 
 type UserUseCase interface {
 	GetCurrentUser(ctx context.Context) (res *dto.UserDto, err error)
-	CheckUserIfExists(ctx context.Context, username string) (res bool, err error)
+	CheckUserIfExists(ctx context.Context, data *entities.SharedUser) (res bool, err error)
 }
 
 type userUseCase struct {
@@ -35,25 +35,23 @@ func (uc *userUseCase) GetCurrentUser(ctx context.Context) (res *dto.UserDto, er
 	return &userDto, nil
 }
 
-func (uc *userUseCase) CheckUserIfExists(ctx context.Context, username string) (res bool, err error) {
+func (uc *userUseCase) CheckUserIfExists(ctx context.Context, data *entities.SharedUser) (res bool, err error) {
 	var exists bool
 
-	if helper.IsEmailValid(username) {
-		exists, err = uc.userService.IsEmailExists(ctx, username)
-		if err != nil {
-			return false, err
-		}
-		if exists {
-			return true, userUseCaseError.EmailAlreadyExists
-		}
-	} else {
-		exists, err = uc.userService.IsUsernameExists(ctx, username)
-		if err != nil {
-			return false, err
-		}
-		if exists {
-			return true, userUseCaseError.UsernameAlreadyExists
-		}
+	exists, err = uc.userService.IsEmailExists(ctx, data.Email)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return true, domainError.ErrEmailAlreadyExists
+	}
+
+	exists, err = uc.userService.IsUsernameExists(ctx, data.Username)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return true, domainError.ErrUsernameAlreadyExists
 	}
 
 	return false, nil

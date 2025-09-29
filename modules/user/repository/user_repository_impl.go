@@ -2,20 +2,21 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/winartodev/apollo-be/core/helper"
+	"github.com/winartodev/apollo-be/infrastructure/database"
 	"github.com/winartodev/apollo-be/modules/user/domain/entities"
 	"github.com/winartodev/apollo-be/modules/user/domain/repository"
 )
 
 type UserRepositoryImpl struct {
-	*helper.DatabaseUtil
+	*database.Database
 }
 
-func NewUserRepository(database *helper.DatabaseUtil) (repository.UserRepository, error) {
+func NewUserRepository(db *database.Database) (repository.UserRepository, error) {
 	return &UserRepositoryImpl{
-		DatabaseUtil: database,
+		Database: db,
 	}, nil
 }
 
@@ -48,17 +49,18 @@ func (ur *UserRepositoryImpl) GetUserByUsernameDB(ctx context.Context, username 
 func (ur *UserRepositoryImpl) getUserByField(ctx context.Context, field, value string) (*entities.User, error) {
 	user := &entities.User{}
 
-	query := fmt.Sprintf("%s WHERE usr.%s = $1", checkUserExists, field)
+	query := fmt.Sprintf("%s WHERE usr.%s = $1", getUserQuery, field)
 
 	err := ur.DB.QueryRowContext(ctx, query, value).Scan(
-		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.FirstName,
 		&user.LastName,
 		&user.PhoneNumber,
 	)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 

@@ -4,15 +4,14 @@
 package user
 
 import (
+	"database/sql"
+
 	"github.com/google/wire"
-	"github.com/winartodev/apollo-be/core/helper"
 	"github.com/winartodev/apollo-be/modules/user/delivery/http"
 )
 
 func InitializeUserAPI(
-	database *helper.DatabaseUtil,
-	redis *helper.RedisUtil,
-	jwt *helper.JWT,
+	db *sql.DB,
 ) (*http.UserHandler, error) {
 	wire.Build(moduleSet)
 	return &http.UserHandler{}, nil
