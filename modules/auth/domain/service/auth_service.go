@@ -11,8 +11,9 @@ import (
 
 type AuthService interface {
 	CreateNewUser(ctx context.Context, data entities.SharedUser) (res *entities.SharedUser, err error)
-	VerifyUser(ctx context.Context, username string, password string) (res *entities.SharedUser, err error)
+	VerifyUsernameAndPassword(ctx context.Context, username string, password string) (res *entities.SharedUser, err error)
 	UpdateRefreshToken(ctx context.Context, id int64, token *string) (err error)
+	UpdatePassword(ctx context.Context, id int64, password string) (err error)
 }
 
 type authService struct {
@@ -45,7 +46,7 @@ func (as *authService) CreateNewUser(ctx context.Context, data entities.SharedUs
 	return &data, nil
 }
 
-func (as *authService) VerifyUser(ctx context.Context, username string, password string) (res *entities.SharedUser, err error) {
+func (as *authService) VerifyUsernameAndPassword(ctx context.Context, username string, password string) (res *entities.SharedUser, err error) {
 	user, err := as.authRepo.GetUserDataDB(ctx, username)
 	if err != nil {
 		return nil, err
@@ -64,4 +65,13 @@ func (as *authService) VerifyUser(ctx context.Context, username string, password
 
 func (as *authService) UpdateRefreshToken(ctx context.Context, id int64, token *string) (err error) {
 	return as.authRepo.UpdateRefreshTokenDB(ctx, id, token)
+}
+
+func (as *authService) UpdatePassword(ctx context.Context, id int64, password string) (err error) {
+	encryptedPassword, err := as.passwordService.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	return as.authRepo.UpdatePasswordDB(ctx, id, encryptedPassword)
 }

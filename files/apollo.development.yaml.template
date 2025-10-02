@@ -29,4 +29,7 @@ smtp:
   sender:
   password:
 otp:
-  expiration:
+  expiration: # in seconds
+  maxAttempts:
+  retryInterval: # in seconds
+apiKey:

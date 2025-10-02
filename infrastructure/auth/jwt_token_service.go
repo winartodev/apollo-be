@@ -1,9 +1,10 @@
 package auth
 
 import (
-	"context"
 	"fmt"
 	"time"
+
+	domainEntity "github.com/winartodev/apollo-be/internal/domain/entities"
 
 	"github.com/winartodev/apollo-be/internal/domain"
 )
@@ -19,7 +20,7 @@ func NewJwtTokenService(jwt *JWT) domain.TokenService {
 }
 
 // GenerateTokenPair implements domain.TokenService.
-func (jts *JwtTokenService) GenerateTokenPair(ctx context.Context, user *domain.SharedUser) (*domain.TokenPair, error) {
+func (jts *JwtTokenService) GenerateTokenPair(user *domainEntity.SharedUser) (*domain.TokenPair, error) {
 	userJWT := &UserJWT{
 		ID:       user.ID,
 		Username: user.Username,
@@ -38,13 +39,13 @@ func (jts *JwtTokenService) GenerateTokenPair(ctx context.Context, user *domain.
 }
 
 // InvalidateToken implements domain.TokenService.
-func (jts *JwtTokenService) InvalidateToken(ctx context.Context, token string) error {
+func (jts *JwtTokenService) InvalidateToken(token string) error {
 	// TODO: Implement invalidate token
 	return nil
 }
 
 // ValidateAccessToken implements domain.TokenService.
-func (jts *JwtTokenService) ValidateAccessToken(ctx context.Context, token string) (*domain.TokenClaims, error) {
+func (jts *JwtTokenService) ValidateAccessToken(token string) (*domain.TokenClaims, error) {
 	claims, isValid, err := jts.jwt.VerifyToken(jts.jwt.AccessToken.SecretKey, token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify access token: %v", err)
@@ -58,7 +59,7 @@ func (jts *JwtTokenService) ValidateAccessToken(ctx context.Context, token strin
 }
 
 // ValidateRefreshToken implements domain.TokenService.
-func (jts *JwtTokenService) ValidateRefreshToken(ctx context.Context, token string) (*domain.TokenClaims, error) {
+func (jts *JwtTokenService) ValidateRefreshToken(token string) (*domain.TokenClaims, error) {
 	claims, isValid, err := jts.jwt.VerifyToken(jts.jwt.RefreshToken.SecretKey, token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify refresh token: %v", err)

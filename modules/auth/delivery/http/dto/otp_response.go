@@ -1,8 +1,8 @@
 package dto
 
-// OtpRefreshResponse represents the response for OTP refresh operations
-// swagger:model OtpRefreshResponse
-type OtpRefreshResponse struct {
+// OtpResponse represents the response for OTP refresh operations
+// swagger:model OtpResponse
+type OtpResponse struct {
 	// Number of retry attempts remaining
 	// example: 3
 	RetryAttemptsLeft int64 `json:"retry_attempts_left"`

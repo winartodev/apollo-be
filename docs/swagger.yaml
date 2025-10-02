@@ -9,7 +9,7 @@ definitions:
         type: string
       otp:
         allOf:
-        - $ref: '#/definitions/dto.OtpRefreshResponse'
+        - $ref: '#/definitions/dto.OtpResponse'
         description: OTP information (if applicable)
       redirection_link:
         description: |-
@@ -22,7 +22,62 @@ definitions:
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
     type: object
-  dto.OtpRefreshResponse:
+  dto.OtpRequest:
+    properties:
+      email:
+        description: |-
+          Email user email address
+          required: true
+          example: user@example.com
+        type: string
+      otp:
+        description: |-
+          OTP Number (6 digits)
+          required: true
+          minimum: 100000
+          maximum: 999999
+          example: 123456
+        maximum: 999999
+        minimum: 0
+        type: integer
+      type:
+        description: |-
+          Type of OTP request, e.g. signup, reset_password
+          required: true
+          enum: signup,request_reset
+          example: request_reset
+        enum:
+        - signup
+        - request_reset
+        type: string
+    required:
+    - email
+    - otp
+    - type
+    type: object
+  dto.OtpResendRequest:
+    properties:
+      email:
+        description: |-
+          Email email address
+          required: true
+          example: user@example.com
+        type: string
+      type:
+        description: |-
+          Type of OTP request, e.g. signup, reset_password, login
+          required: true
+          enum: signup,reset_password,login
+          example: reset_password
+        enum:
+        - signup
+        - request_reset
+        type: string
+    required:
+    - email
+    - type
+    type: object
+  dto.OtpResponse:
     properties:
       expires_in:
         description: |-
@@ -45,24 +100,6 @@ definitions:
           example: 3
         type: integer
     type: object
-  dto.OtpRequest:
-    properties:
-      otp:
-        description: |-
-          OTP number (required)
-          required: true
-          minimum: 0
-          maximum: 6
-          example: 123456
-        type: integer
-    required:
-    - otp
-    type: object
-  dto.OtpResendRequest:
-    properties:
-      username:
-        type: string
-    type: object
   dto.OtpValidationResponse:
     properties:
       is_valid:
@@ -80,6 +117,56 @@ definitions:
           Redirection link after successful validation
           example: https://example.com/dashboard
         type: string
+    type: object
+  dto.RequestResetRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  dto.RequestResetResponse:
+    properties:
+      otp:
+        allOf:
+        - $ref: '#/definitions/dto.OtpResponse'
+        description: OTP information (if applicable)
+      redirection_link:
+        description: |-
+          Redirection link after authentication
+          example: /dashboard
+        type: string
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      email:
+        description: |-
+          Email of the user requesting the password reset.
+          required: true
+          format: email
+        type: string
+      password:
+        description: |-
+          Password is the new password the user wants to set.
+          required: true
+          min length: 0
+          max length: 8
+        maxLength: 8
+        minLength: 0
+        type: string
+      password_confirmation:
+        description: |-
+          PasswordConfirmation must match the password field.
+          required: true
+          min length: 0
+          max length: 8
+        maxLength: 8
+        minLength: 0
+        type: string
+    required:
+    - email
+    - password
+    - password_confirmation
     type: object
   dto.SignInRequest:
     properties:
@@ -144,6 +231,22 @@ definitions:
     required:
     - username
     type: object
+  dto.VerifyUserRequest:
+    properties:
+      username:
+        type: string
+    required:
+    - username
+    type: object
+  dto.VerifyUserResponse:
+    properties:
+      suggestions:
+        items:
+          type: string
+        type: array
+      user_exists:
+        type: boolean
+    type: object
   response.ErrorResponse:
     properties:
       error:
@@ -205,6 +308,84 @@ paths:
       security:
       - BearerAuth: []
       summary: Refresh authentication tokens
+      tags:
+      - Authentication
+  /auth/request-reset:
+    post:
+      consumes:
+      - application/json
+      description: Send OTP to user's email for password reset
+      parameters:
+      - description: Password Reset Request Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Response containing OTP info
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RequestResetResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Request to reset password
+      tags:
+      - Authentication
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset the user's password using email and new password
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Reset password
       tags:
       - Authentication
   /auth/sign-in:
@@ -319,6 +500,42 @@ paths:
       summary: Register a new user
       tags:
       - Authentication
+  /auth/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies if a username is available (i.e., does not already exist
+        in the system).
+      parameters:
+      - description: Verify User Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Username is available
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VerifyUserResponse'
+              type: object
+        "400":
+          description: Invalid request payload or validation error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "409":
+          description: Username already exists
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Check username availability
+      tags:
+      - Authentication
   /otp/resend:
     post:
       consumes:
@@ -341,7 +558,7 @@ paths:
             - $ref: '#/definitions/response.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.OtpRefreshResponse'
+                  $ref: '#/definitions/dto.OtpResponse'
               type: object
         "400":
           description: Invalid request payload
@@ -363,8 +580,6 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/response.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Resend OTP
       tags:
       - OTP
@@ -416,8 +631,6 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/response.ErrorResponse'
-      security:
-      - BearerAuth: []
       summary: Validate OTP
       tags:
       - OTP

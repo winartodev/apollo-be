@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/labstack/gommon/log"
+
 	"github.com/winartodev/apollo-be/config"
 	"github.com/winartodev/apollo-be/infrastructure/smtp"
 	"github.com/winartodev/apollo-be/modules/auth/domain/service"
@@ -16,7 +18,7 @@ import (
 )
 
 type OtpUseCase interface {
-	ResendOTP(ctx context.Context) (res *dto.OtpDto, err error)
+	SendOTP(ctx context.Context) (res *dto.OtpDto, err error)
 	ValidateOTP(ctx context.Context, code string) (res *dto.OtpDto, err error)
 }
 
@@ -36,7 +38,7 @@ func NewOtpUseCase(otpService service.OtpService, userUseCase userUseCase.UserUs
 	}
 }
 
-func (ou *otpUseCase) ResendOTP(ctx context.Context) (res *dto.OtpDto, err error) {
+func (ou *otpUseCase) SendOTP(ctx context.Context) (res *dto.OtpDto, err error) {
 	user, err := ou.userUseCase.GetCurrentUser(ctx)
 	if err != nil {
 		return nil, err
@@ -47,10 +49,7 @@ func (ou *otpUseCase) ResendOTP(ctx context.Context) (res *dto.OtpDto, err error
 		return nil, err
 	}
 
-	err = ou.sendOTPEmail(user.Email, *otp)
-	if err != nil {
-		return nil, err
-	}
+	ou.sendOTPEmailAsync(user.Email, *otp)
 
 	retryAttemptsLeft := ou.otp.MaxAttempt - *retryLeft
 
@@ -76,6 +75,14 @@ func (ou *otpUseCase) ValidateOTP(ctx context.Context, code string) (res *dto.Ot
 	return &dto.OtpDto{
 		IsValid: otpIsValid,
 	}, nil
+}
+
+func (ou *otpUseCase) sendOTPEmailAsync(email string, code string) {
+	go func() {
+		if err := ou.sendOTPEmail(email, code); err != nil {
+			log.Printf("failed to send OTP email to %s: %v", email, err)
+		}
+	}()
 }
 
 func (ou *otpUseCase) sendOTPEmail(email string, code string) (err error) {

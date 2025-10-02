@@ -23,4 +23,11 @@ const (
 		FROM users AS usr
 		WHERE usr.username = $1 OR usr.email = $2
 	`
+
+	updatePasswordQueryDB = `
+		UPDATE users SET 
+			password = $2, 
+			updated_at = $3 
+		WHERE id = $1
+	`
 )

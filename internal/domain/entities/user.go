@@ -2,7 +2,7 @@ package entities
 
 import "time"
 
-// User represents the core user entity used across all modules
+// SharedUser represents the core user entity used across all modules
 type SharedUser struct {
 	// Core identification
 	ID       int64  `json:"id"`

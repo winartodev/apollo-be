@@ -9,16 +9,13 @@ import (
 
 // UserApplicationService handles cross-cutting user operations across modules
 type UserApplicationService interface {
-	// User existence and validation operations
 	UserExists(ctx context.Context, username string) (bool, error)
 	UserExistsByEmail(ctx context.Context, email string) (bool, error)
 
-	// User retrieval operations
 	GetUserByID(ctx context.Context, id int64) (*entities.SharedUser, error)
 	GetUserByUsername(ctx context.Context, username string) (*entities.SharedUser, error)
 	GetUserByEmail(ctx context.Context, email string) (*entities.SharedUser, error)
 
-	// User status operations
 	ActivateUser(ctx context.Context, userID int64) error
 	DeactivateUser(ctx context.Context, userID int64) error
 	VerifyUserEmail(ctx context.Context, userID int64) error
