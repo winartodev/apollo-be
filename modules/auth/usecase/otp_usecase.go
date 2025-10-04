@@ -10,7 +10,6 @@ import (
 
 	"github.com/labstack/gommon/log"
 
-	"github.com/winartodev/apollo-be/config"
 	"github.com/winartodev/apollo-be/infrastructure/smtp"
 	"github.com/winartodev/apollo-be/modules/auth/domain/service"
 	"github.com/winartodev/apollo-be/modules/auth/usecase/dto"
@@ -24,15 +23,13 @@ type OtpUseCase interface {
 
 type otpUseCase struct {
 	smtpService smtp.SMTPService
-	otp         *config.Otp
 	userUseCase userUseCase.UserUseCase
 	otpService  service.OtpService
 }
 
-func NewOtpUseCase(otpService service.OtpService, userUseCase userUseCase.UserUseCase, smtpService smtp.SMTPService, otp *config.Otp) OtpUseCase {
+func NewOtpUseCase(otpService service.OtpService, userUseCase userUseCase.UserUseCase, smtpService smtp.SMTPService) OtpUseCase {
 	return &otpUseCase{
 		smtpService: smtpService,
-		otp:         otp,
 		otpService:  otpService,
 		userUseCase: userUseCase,
 	}
@@ -44,19 +41,17 @@ func (ou *otpUseCase) SendOTP(ctx context.Context) (res *dto.OtpDto, err error) 
 		return nil, err
 	}
 
-	otp, retryLeft, err := ou.otpService.GetOTP(ctx, user.Email)
+	otp, err := ou.otpService.GetOTP(ctx, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	ou.sendOTPEmailAsync(user.Email, *otp)
-
-	retryAttemptsLeft := ou.otp.MaxAttempt - *retryLeft
+	ou.sendOTPEmailAsync(user.Email, otp.OTPNumber)
 
 	return &dto.OtpDto{
-		ExpiresIn:         ou.otp.Expiration,
-		RetryAfterIn:      ou.otp.Expiration,
-		RetryAttemptsLeft: retryAttemptsLeft,
+		ExpiresIn:         otp.Expiration,
+		RetryAfterIn:      otp.RetryInterval,
+		RetryAttemptsLeft: otp.RetryAttemptsLeft,
 		IsValid:           false,
 	}, nil
 }

@@ -8,7 +8,6 @@ package auth
 
 import (
 	"database/sql"
-
 	"github.com/redis/go-redis/v9"
 	"github.com/winartodev/apollo-be/config"
 	"github.com/winartodev/apollo-be/infrastructure/auth"
@@ -49,7 +48,7 @@ func InitializeAuthAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTP
 	if err != nil {
 		return nil, err
 	}
-	otpService, err := service.NewOtpService(otpRepository)
+	otpService, err := service.NewOtpService(otpRepository, otp)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func InitializeAuthAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTP
 		return nil, err
 	}
 	smtpService := smtp.NewSMTPService(smtpConfig)
-	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService, otp)
+	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService)
 	jwt, err := auth.NewJWT()
 	if err != nil {
 		return nil, err
@@ -90,7 +89,7 @@ func InitializeOtpAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTPC
 	if err != nil {
 		return nil, err
 	}
-	otpService, err := service.NewOtpService(otpRepository)
+	otpService, err := service.NewOtpService(otpRepository, otp)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +110,7 @@ func InitializeOtpAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTPC
 		return nil, err
 	}
 	smtpService := smtp.NewSMTPService(smtpConfig)
-	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService, otp)
+	otpUseCase := usecase2.NewOtpUseCase(otpService, userUseCase, smtpService)
 	jwt, err := auth.NewJWT()
 	if err != nil {
 		return nil, err

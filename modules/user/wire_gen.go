@@ -8,7 +8,6 @@ package user
 
 import (
 	"database/sql"
-
 	"github.com/winartodev/apollo-be/infrastructure/auth"
 	"github.com/winartodev/apollo-be/infrastructure/database"
 	"github.com/winartodev/apollo-be/infrastructure/middleware"
