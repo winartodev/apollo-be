@@ -44,7 +44,6 @@ func (os *otpService) GetOTP(ctx context.Context, username string) (otp *string,
 	}
 
 	if currentAttempt != nil && *currentAttempt >= otpMaxAttempts {
-
 		return nil, nil, domainError.ErrOtpTooManyRequest
 	}
 
@@ -70,7 +69,7 @@ func (os *otpService) ValidateOTP(ctx context.Context, username string, otp *str
 	}
 
 	if otpData == nil {
-		return false, nil
+		return false, domainError.ErrInvalidOTPNumber
 	}
 
 	if otpData.Number != *otp {

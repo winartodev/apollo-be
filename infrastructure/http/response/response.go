@@ -1,8 +1,9 @@
 package response
 
 import (
-	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 	"net/http"
+
+	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"

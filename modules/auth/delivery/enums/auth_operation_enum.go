@@ -3,7 +3,9 @@ package enums
 type AuthOperation string
 
 const (
-	SignUp  AuthOperation = "SignUp"
-	SignIn  AuthOperation = "SignIn"
-	SignOut AuthOperation = "SignOut"
+	AuthSignUp        AuthOperation = "SignUp"
+	AuthSignIn        AuthOperation = "SignIn"
+	AuthSignOut       AuthOperation = "SignOut"
+	AuthResetPassword AuthOperation = "ResetPassword"
+	AuthRequestReset  AuthOperation = "RequestReset"
 )

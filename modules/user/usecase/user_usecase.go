@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
-	"github.com/winartodev/apollo-be/internal/domain/entities"
+	"github.com/winartodev/apollo-be/helper"
+
+	domainEntity "github.com/winartodev/apollo-be/internal/domain/entities"
 	domainError "github.com/winartodev/apollo-be/internal/domain/error"
 
 	"github.com/winartodev/apollo-be/modules/user/domain/service"
@@ -11,7 +13,8 @@ import (
 
 type UserUseCase interface {
 	GetCurrentUser(ctx context.Context) (res *dto.UserDto, err error)
-	CheckUserIfExists(ctx context.Context, data *entities.SharedUser) (res bool, err error)
+	GetUserByEmail(ctx context.Context, email string) (res *domainEntity.SharedUser, err error)
+	CheckUserIfExists(ctx context.Context, data domainEntity.SharedUser) (res *domainEntity.SharedUser, err error)
 }
 
 type userUseCase struct {
@@ -30,29 +33,45 @@ func (uc *userUseCase) GetCurrentUser(ctx context.Context) (res *dto.UserDto, er
 		return nil, err
 	}
 
+	if (user == nil) || (user.ID == 0) {
+		return nil, domainError.ErrUserNotFound
+	}
+
 	userDto := user.ToUseCaseData()
 
 	return &userDto, nil
 }
 
-func (uc *userUseCase) CheckUserIfExists(ctx context.Context, data *entities.SharedUser) (res bool, err error) {
-	var exists bool
+func (uc *userUseCase) CheckUserIfExists(ctx context.Context, data domainEntity.SharedUser) (res *domainEntity.SharedUser, err error) {
+	var sharedUser *domainEntity.SharedUser
 
-	exists, err = uc.userService.IsEmailExists(ctx, data.Email)
-	if err != nil {
-		return false, err
-	}
-	if exists {
-		return true, domainError.ErrEmailAlreadyExists
-	}
-
-	exists, err = uc.userService.IsUsernameExists(ctx, data.Username)
-	if err != nil {
-		return false, err
-	}
-	if exists {
-		return true, domainError.ErrUsernameAlreadyExists
+	if data.Email != "" {
+		sharedUser, err = uc.userService.IsEmailExists(ctx, data.Email)
+		if err != nil {
+			return nil, err
+		}
+		if sharedUser != nil {
+			return sharedUser, domainError.ErrEmailAlreadyExists
+		}
 	}
 
-	return false, nil
+	if data.Username != "" {
+		sharedUser, err = uc.userService.IsUsernameExists(ctx, data.Username)
+		if err != nil {
+			return nil, err
+		}
+		if sharedUser != nil {
+			return sharedUser, domainError.ErrUsernameAlreadyExists
+		}
+	}
+
+	return nil, nil
+}
+
+func (uc *userUseCase) GetUserByEmail(ctx context.Context, email string) (res *domainEntity.SharedUser, err error) {
+	if !helper.IsEmailValid(email) {
+		return nil, domainError.ErrInvalidEmail
+	}
+
+	return uc.userService.IsUsernameExists(ctx, email)
 }

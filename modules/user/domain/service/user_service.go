@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	domainEntity "github.com/winartodev/apollo-be/internal/domain/entities"
 
 	"github.com/winartodev/apollo-be/helper"
 	infraContext "github.com/winartodev/apollo-be/infrastructure/context"
@@ -11,9 +12,9 @@ import (
 )
 
 type UserService interface {
-	GetCurrentUser(ctx context.Context) (user *entities.User, err error)
-	IsEmailExists(ctx context.Context, email string) (res bool, err error)
-	IsUsernameExists(ctx context.Context, username string) (res bool, err error)
+	GetCurrentUser(ctx context.Context) (res *entities.User, err error)
+	IsEmailExists(ctx context.Context, email string) (res *domainEntity.SharedUser, err error)
+	IsUsernameExists(ctx context.Context, username string) (res *domainEntity.SharedUser, err error)
 }
 
 type userService struct {
@@ -38,24 +39,42 @@ func (us *userService) GetCurrentUser(ctx context.Context) (user *entities.User,
 	return user, nil
 }
 
-func (us *userService) IsEmailExists(ctx context.Context, email string) (res bool, err error) {
+func (us *userService) IsEmailExists(ctx context.Context, email string) (res *domainEntity.SharedUser, err error) {
 	if !helper.IsEmailValid(email) {
-		return false, domainError.ErrInvalidEmail
+		return nil, domainError.ErrInvalidEmail
 	}
 
 	user, err := us.userRepo.GetUserByEmailDB(ctx, email)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return user != nil, nil
+	return us.buildToSharedUser(user), nil
 }
 
-func (us *userService) IsUsernameExists(ctx context.Context, username string) (res bool, err error) {
+func (us *userService) IsUsernameExists(ctx context.Context, username string) (res *domainEntity.SharedUser, err error) {
 	user, err := us.userRepo.GetUserByUsernameDB(ctx, username)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	return user != nil, nil
+	return us.buildToSharedUser(user), nil
+}
+
+func (us *userService) buildToSharedUser(user *entities.User) (sharedUser *domainEntity.SharedUser) {
+	if user == nil {
+		return nil
+	}
+
+	return &domainEntity.SharedUser{
+		ID:              user.ID,
+		Username:        user.Username,
+		Email:           user.Email,
+		PhoneNumber:     user.PhoneNumber,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		IsActive:        user.IsActive,
+		IsEmailVerified: user.IsEmailVerified,
+		IsPhoneVerified: user.IsPhoneVerified,
+	}
 }

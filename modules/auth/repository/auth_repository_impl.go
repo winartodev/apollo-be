@@ -89,3 +89,25 @@ func (ar *AuthRepositoryImpl) GetUserDataDB(ctx context.Context, username string
 
 	return result, nil
 }
+
+func (ar *AuthRepositoryImpl) UpdatePasswordDB(ctx context.Context, id int64, hashedPassword string) (err error) {
+	stmt, err := ar.DB.PrepareContext(ctx, updatePasswordQueryDB)
+	if err != nil {
+		return fmt.Errorf(database.ErrFailedPrepareStatement, err)
+	}
+
+	defer ar.Database.CloseStatement(stmt, &err)
+
+	updatedAt := time.Now().Unix()
+	_, err = stmt.ExecContext(
+		ctx,
+		id,
+		hashedPassword,
+		updatedAt,
+	)
+	if err != nil {
+		return domainError.ErrFailedUpdatePassword
+	}
+
+	return err
+}

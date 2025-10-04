@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/labstack/echo/v4"
@@ -21,7 +20,7 @@ func RegisterHandler(e *echo.Echo, handlers ...APIRouteItf) error {
 
 	for _, apiRoute := range handlers {
 		if err := apiRoute.RegisterRoutes(api); err != nil {
-			return errors.New(fmt.Sprintf(errorRegisterHandler, err))
+			return fmt.Errorf(errorRegisterHandler, err)
 		}
 	}
 

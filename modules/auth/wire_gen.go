@@ -118,6 +118,6 @@ func InitializeOtpAPI(db *sql.DB, redis3 *redis.Client, smtpConfig *config.SMTPC
 	}
 	tokenService := auth.NewJwtTokenService(jwt)
 	middlewareMiddleware := middleware.NewMiddleware(tokenService)
-	otpHandler := http.NewOtpHandler(otpUseCase, middlewareMiddleware)
+	otpHandler := http.NewOtpHandler(otpUseCase, userUseCase, middlewareMiddleware)
 	return otpHandler, nil
 }

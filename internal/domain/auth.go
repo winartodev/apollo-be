@@ -1,8 +1,9 @@
 package domain
 
 import (
-	"context"
 	"time"
+
+	domainEntity "github.com/winartodev/apollo-be/internal/domain/entities"
 )
 
 type TokenPair struct {
@@ -19,10 +20,10 @@ type TokenClaims struct {
 }
 
 type TokenService interface {
-	GenerateTokenPair(ctx context.Context, user *SharedUser) (*TokenPair, error)
-	ValidateAccessToken(ctx context.Context, token string) (*TokenClaims, error)
-	ValidateRefreshToken(ctx context.Context, token string) (*TokenClaims, error)
-	InvalidateToken(ctx context.Context, token string) error
+	GenerateTokenPair(user *domainEntity.SharedUser) (*TokenPair, error)
+	ValidateAccessToken(token string) (*TokenClaims, error)
+	ValidateRefreshToken(token string) (*TokenClaims, error)
+	InvalidateToken(token string) error
 }
 
 type PasswordService interface {

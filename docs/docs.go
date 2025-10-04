@@ -67,6 +67,134 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/request-reset": {
+            "post": {
+                "description": "Send OTP to user's email for password reset",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Request to reset password",
+                "parameters": [
+                    {
+                        "description": "Password Reset Request Payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RequestResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Response containing OTP info",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.RequestResetResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset the user's password using email and new password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Reset Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/sign-in": {
             "post": {
                 "description": "Sign in user with username/email and password",
@@ -253,13 +381,66 @@ const docTemplate = `{
                 }
             }
         },
-        "/otp/resend": {
+        "/auth/verify": {
             "post": {
-                "security": [
+                "description": "Verifies if a username is available (i.e., does not already exist in the system).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Check username availability",
+                "parameters": [
                     {
-                        "BearerAuth": []
+                        "description": "Verify User Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.VerifyUserRequest"
+                        }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Username is available",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.VerifyUserResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload or validation error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Username already exists",
+                        "schema": {
+                            "$ref": "#/definitions/response.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/otp/resend": {
+            "post": {
                 "description": "Resend one-time password to the user",
                 "consumes": [
                     "application/json"
@@ -294,7 +475,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.OtpRefreshResponse"
+                                            "$ref": "#/definitions/dto.OtpResponse"
                                         }
                                     }
                                 }
@@ -336,11 +517,6 @@ const docTemplate = `{
         },
         "/otp/validate": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Validate one-time password provided by the user",
                 "consumes": [
                     "application/json"
@@ -434,7 +610,7 @@ const docTemplate = `{
                     "description": "OTP information (if applicable)",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.OtpRefreshResponse"
+                            "$ref": "#/definitions/dto.OtpResponse"
                         }
                     ]
                 },
@@ -448,7 +624,56 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.OtpRefreshResponse": {
+        "dto.OtpRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "otp",
+                "type"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email user email address\nrequired: true\nexample: user@example.com",
+                    "type": "string"
+                },
+                "otp": {
+                    "description": "OTP Number (6 digits)\nrequired: true\nminimum: 100000\nmaximum: 999999\nexample: 123456",
+                    "type": "integer",
+                    "maximum": 999999,
+                    "minimum": 0
+                },
+                "type": {
+                    "description": "Type of OTP request, e.g. signup, reset_password\nrequired: true\nenum: signup,request_reset\nexample: request_reset",
+                    "type": "string",
+                    "enum": [
+                        "signup",
+                        "request_reset"
+                    ]
+                }
+            }
+        },
+        "dto.OtpResendRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "type"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email email address\nrequired: true\nexample: user@example.com",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Type of OTP request, e.g. signup, reset_password, login\nrequired: true\nenum: signup,reset_password,login\nexample: reset_password",
+                    "type": "string",
+                    "enum": [
+                        "signup",
+                        "request_reset"
+                    ]
+                }
+            }
+        },
+        "dto.OtpResponse": {
             "type": "object",
             "properties": {
                 "expires_in": {
@@ -469,26 +694,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.OtpRequest": {
-            "type": "object",
-            "required": [
-                "otp"
-            ],
-            "properties": {
-                "otp": {
-                    "description": "OTP number (required)\nrequired: true\nminimum: 0\nmaximum: 6\nexample: 123456",
-                    "type": "integer"
-                }
-            }
-        },
-        "dto.OtpResendRequest": {
-            "type": "object",
-            "properties": {
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.OtpValidationResponse": {
             "type": "object",
             "properties": {
@@ -503,6 +708,60 @@ const docTemplate = `{
                 "redirection_link": {
                     "description": "Redirection link after successful validation\nexample: https://example.com/dashboard",
                     "type": "string"
+                }
+            }
+        },
+        "dto.RequestResetRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RequestResetResponse": {
+            "type": "object",
+            "properties": {
+                "otp": {
+                    "description": "OTP information (if applicable)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/dto.OtpResponse"
+                        }
+                    ]
+                },
+                "redirection_link": {
+                    "description": "Redirection link after authentication\nexample: /dashboard",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "password_confirmation"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email of the user requesting the password reset.\nrequired: true\nformat: email",
+                    "type": "string"
+                },
+                "password": {
+                    "description": "Password is the new password the user wants to set.\nrequired: true\nmin length: 0\nmax length: 8",
+                    "type": "string",
+                    "maxLength": 8,
+                    "minLength": 0
+                },
+                "password_confirmation": {
+                    "description": "PasswordConfirmation must match the password field.\nrequired: true\nmin length: 0\nmax length: 8",
+                    "type": "string",
+                    "maxLength": 8,
+                    "minLength": 0
                 }
             }
         },
@@ -550,6 +809,31 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 30,
                     "minLength": 3
+                }
+            }
+        },
+        "dto.VerifyUserRequest": {
+            "type": "object",
+            "required": [
+                "username"
+            ],
+            "properties": {
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.VerifyUserResponse": {
+            "type": "object",
+            "properties": {
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "user_exists": {
+                    "type": "boolean"
                 }
             }
         },

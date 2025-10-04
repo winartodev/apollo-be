@@ -28,7 +28,7 @@ func NewAuthHandler(authUseCase usecase.AuthUseCase, middleware *middleware.Midd
 	}
 }
 
-// SignUp handles user registration
+// SignUp godoc
 //
 //	@Summary		Register a new user
 //	@Description	Create a new user account with provided credentials
@@ -59,10 +59,8 @@ func (ah *AuthHandler) SignUp(c echo.Context) error {
 	}
 
 	resp := dto.AuthResponse{
-		AccessToken:     res.AccessToken,
-		RefreshToken:    res.RefreshToken,
-		RedirectionLink: ah.buildRedirectionLink(ctx, enums.SignUp),
-		Otp: &dto.OtpRefreshResponse{
+		RedirectionLink: ah.buildRedirectionLink(ctx, enums.AuthSignUp),
+		Otp: &dto.OtpResponse{
 			RetryAttemptsLeft: res.Otp.RetryAttemptsLeft,
 			ExpiresIn:         res.Otp.ExpiresIn,
 			RetryAfterIn:      res.Otp.RetryAfterIn,
@@ -72,7 +70,7 @@ func (ah *AuthHandler) SignUp(c echo.Context) error {
 	return response.SuccessResponse(c, http.StatusCreated, "User registered successfully", resp, nil)
 }
 
-// SignIn handles user authentication
+// SignIn godoc
 //
 //	@Summary		Authenticate user
 //	@Description	Sign in user with username/email and password
@@ -106,13 +104,13 @@ func (ah *AuthHandler) SignIn(c echo.Context) error {
 	resp := dto.AuthResponse{
 		AccessToken:     res.AccessToken,
 		RefreshToken:    res.RefreshToken,
-		RedirectionLink: ah.buildRedirectionLink(ctx, enums.SignIn),
+		RedirectionLink: ah.buildRedirectionLink(ctx, enums.AuthSignIn),
 	}
 
 	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
-// SignOut handles user logout
+// SignOut godoc
 //
 //	@Summary		Logout user
 //	@Description	Sign out user and invalidate authentication tokens
@@ -126,21 +124,19 @@ func (ah *AuthHandler) SignIn(c echo.Context) error {
 //	@Router			/auth/sign-out [post]
 func (ah *AuthHandler) SignOut(c echo.Context) error {
 	ctx := c.Request().Context()
-	res, err := ah.authUseCase.SignOut(ctx)
+	_, err := ah.authUseCase.SignOut(ctx)
 	if err != nil {
 		return response.FailedResponse(c, http.StatusInternalServerError, err)
 	}
 
 	resp := dto.AuthResponse{
-		AccessToken:     res.AccessToken,
-		RefreshToken:    res.RefreshToken,
-		RedirectionLink: ah.buildRedirectionLink(ctx, enums.SignOut),
+		RedirectionLink: ah.buildRedirectionLink(ctx, enums.AuthSignOut),
 	}
 
 	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
-// RefreshToken handles token refresh
+// RefreshToken godoc
 //
 //	@Summary		Refresh authentication tokens
 //	@Description	Refresh access token using refresh token
@@ -168,6 +164,18 @@ func (ah *AuthHandler) RefreshToken(c echo.Context) error {
 	return response.SuccessResponse(c, http.StatusOK, "OK", resp, nil)
 }
 
+// VerifyUser godoc
+//
+//	@Summary		Check username availability
+//	@Description	Verifies if a username is available (i.e., does not already exist in the system).
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.VerifyUserRequest							true	"Verify User Request"
+//	@Success		200		{object}	response.Response{data=dto.VerifyUserResponse}	"Username is available"
+//	@Failure		400		{object}	response.ErrorResponse							"Invalid request payload or validation error"
+//	@Failure		409		{object}	response.ErrorResponse							"Username already exists"
+//	@Router			/auth/verify [post]
 func (ah *AuthHandler) VerifyUser(c echo.Context) error {
 	var req dto.VerifyUserRequest
 
@@ -180,12 +188,94 @@ func (ah *AuthHandler) VerifyUser(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	err := ah.authUseCase.VerifyUser(ctx, req.Username)
+	res, err := ah.authUseCase.VerifyUser(ctx, req.Username)
 	if err != nil {
 		return response.FailedResponse(c, http.StatusConflict, domainError.ErrInvalidUsernameOrPassword)
 	}
 
-	return response.SuccessResponse(c, http.StatusOK, "ok", nil, nil)
+	resp := dto.VerifyUserResponse{
+		UserExists:  res.User == nil,
+		Suggestions: res.Suggestions,
+	}
+
+	return response.SuccessResponse(c, http.StatusOK, "ok", resp, nil)
+}
+
+// RequestReset godoc
+//
+//	@Summary		Request to reset password
+//	@Description	Send OTP to user's email for password reset
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		dto.RequestResetRequest								true	"Password Reset Request Payload"
+//	@Success		200		{object}	response.Response{data=dto.RequestResetResponse}	"Response containing OTP info"
+//	@Failure		400		{object}	response.ErrorResponse								"Invalid request payload"
+//	@Failure		422		{object}	response.ErrorResponse								"Validation error"
+//	@Failure		500		{object}	response.ErrorResponse								"Internal server error"
+//	@Router			/auth/request-reset [post]
+func (ah *AuthHandler) RequestReset(c echo.Context) error {
+	var req dto.RequestResetRequest
+
+	if err := c.Bind(&req); err != nil {
+		return response.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(response.ErrInvalidRequestPayload, err))
+	}
+
+	if err := c.Validate(req); err != nil {
+		return response.ValidationErrResponse(c, err)
+	}
+
+	ctx := c.Request().Context()
+	res, err := ah.authUseCase.RequestResetPassword(ctx, req.Email)
+	if err != nil {
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
+	}
+
+	resp := dto.RequestResetResponse{
+		RedirectionLink: ah.buildRedirectionLink(ctx, enums.AuthRequestReset),
+		Otp: &dto.OtpResponse{
+			RetryAttemptsLeft: res.Otp.RetryAttemptsLeft,
+			ExpiresIn:         res.Otp.ExpiresIn,
+			RetryAfterIn:      res.Otp.RetryAfterIn,
+		},
+	}
+
+	return response.SuccessResponse(c, http.StatusOK, "ok", resp, nil)
+}
+
+// ResetPassword godoc
+//
+//	@Summary		Reset password
+//	@Description	Reset the user's password using email and new password
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.ResetPasswordRequest	true	"Reset Password Request"
+//	@Success		200		{object}	response.Response{data=dto.AuthResponse}
+//	@Failure		400		{object}	response.ErrorResponse	"Invalid request payload"
+//	@Failure		422		{object}	response.ErrorResponse	"Validation error"
+//	@Failure		500		{object}	response.ErrorResponse	"Internal server error"
+//	@Router			/auth/reset-password [post]
+func (ah *AuthHandler) ResetPassword(c echo.Context) error {
+	var req dto.ResetPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return response.FailedResponse(c, http.StatusBadRequest, fmt.Errorf(response.ErrInvalidRequestPayload, err))
+	}
+	if err := c.Validate(req); err != nil {
+		return response.ValidationErrResponse(c, err)
+	}
+
+	ctx := c.Request().Context()
+	err := ah.authUseCase.ResetPassword(ctx, req.ToUseCaseData())
+	if err != nil {
+		return response.FailedResponse(c, http.StatusInternalServerError, err)
+	}
+
+	resp := dto.AuthResponse{
+		RedirectionLink: ah.buildRedirectionLink(ctx, enums.AuthResetPassword),
+	}
+
+	return response.SuccessResponse(c, http.StatusOK, "ok", resp, nil)
 }
 
 func (ah *AuthHandler) RegisterRoutes(api *echo.Group) error {
@@ -195,6 +285,8 @@ func (ah *AuthHandler) RegisterRoutes(api *echo.Group) error {
 	auth.GET("/verify-user", ah.VerifyUser)
 	auth.POST("/sign-out", ah.SignOut, ah.middleware.HandleWithAuth())
 	auth.POST("/refresh", ah.RefreshToken, ah.middleware.HandleRefreshToken())
+	auth.POST("/request-reset", ah.RequestReset)
+	auth.POST("/reset-password", ah.ResetPassword)
 
 	return nil
 }
@@ -215,12 +307,16 @@ func (ah *AuthHandler) buildRedirectionLink(ctx context.Context, action enums.Au
 
 func (ah *AuthHandler) getMobileRedirection(operation enums.AuthOperation) (res string) {
 	switch operation {
-	case enums.SignUp:
+	case enums.AuthSignUp:
 		return "/otpVerificationPage"
-	case enums.SignIn:
+	case enums.AuthSignIn:
 		return "/homePage"
-	case enums.SignOut:
-		return "/SignInPage"
+	case enums.AuthSignOut:
+		return "/signInPage"
+	case enums.AuthResetPassword:
+		return "/signInPage"
+	case enums.AuthRequestReset:
+		return "/otpVerificationPage"
 	default:
 		return ""
 	}
@@ -228,12 +324,16 @@ func (ah *AuthHandler) getMobileRedirection(operation enums.AuthOperation) (res 
 
 func (ah *AuthHandler) getWebRedirection(operation enums.AuthOperation) (res string) {
 	switch operation {
-	case enums.SignUp:
+	case enums.AuthSignUp:
 		return "/verification"
-	case enums.SignIn:
+	case enums.AuthSignIn:
 		return "/home"
-	case enums.SignOut:
+	case enums.AuthSignOut:
 		return "/sign-in"
+	case enums.AuthResetPassword:
+		return "/sign-in"
+	case enums.AuthRequestReset:
+		return "/verification"
 	default:
 		return ""
 	}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/winartodev/apollo-be/infrastructure/database"
@@ -31,7 +32,10 @@ func (ur *UserRepositoryImpl) GetUserByIDDB(ctx context.Context, id int64) (user
 		&user.LastName,
 		&user.PhoneNumber,
 	)
-	if err != nil {
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -46,19 +50,21 @@ func (ur *UserRepositoryImpl) GetUserByUsernameDB(ctx context.Context, username 
 	return ur.getUserByField(ctx, "username", username)
 }
 
-func (ur *UserRepositoryImpl) getUserByField(ctx context.Context, field, value string) (*entities.User, error) {
+func (ur *UserRepositoryImpl) getUserByField(ctx context.Context, field, value string) (res *entities.User, err error) {
 	user := &entities.User{}
 
 	query := fmt.Sprintf("%s WHERE usr.%s = $1", getUserQuery, field)
 
-	err := ur.DB.QueryRowContext(ctx, query, value).Scan(
+	err = ur.DB.QueryRowContext(ctx, query, value).Scan(
+		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.FirstName,
 		&user.LastName,
 		&user.PhoneNumber,
 	)
-	if err == sql.ErrNoRows {
+
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
