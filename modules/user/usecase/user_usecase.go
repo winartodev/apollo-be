@@ -73,5 +73,14 @@ func (uc *userUseCase) GetUserByEmail(ctx context.Context, email string) (res *d
 		return nil, domainError.ErrInvalidEmail
 	}
 
-	return uc.userService.IsUsernameExists(ctx, email)
+	user, err := uc.userService.IsEmailExists(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, domainError.ErrUserNotFound
+	}
+
+	return user, err
 }
